@@ -7,11 +7,8 @@ import sys
 import struct
 import numpy as np
 
-
-
 class PX409():
-    """Driver for the PX409 pressure transducer"""
-    
+    '''Driver for the PX409 pressure transducer'''
     def __init__(self, port):
         self.serial = serial.Serial(
             port=port,
@@ -27,8 +24,8 @@ class PX409():
     def __exit__(self, exc_type, exc_value, traceback):
         # The exit code of the sample application.
         exitCode = 0
-        #sys.exit(exitCode)
-        #print ('Transducer closed.')
+        sys.exit(exitCode)
+        print ('Transducer closed.')
 
     def write(self, command):
         self.serial.write((command + '\r').encode('ascii'))
@@ -36,8 +33,6 @@ class PX409():
         waiting = self.serial.inWaiting()
         resp = self.serial.read(waiting)
         resp_unicode = resp.decode('ascii')
-        #print (resp_unicode) 
-
         return resp_unicode
 
     def get_serialNumber(self):
@@ -45,13 +40,11 @@ class PX409():
         '''
         return self.write('SNR')
         
-
     def get_firmware(self):
         '''Returns the transducer’s Unit ID, firmware version, range, and
         engineering units, all in ASCII.
         '''
         return self.write('ENQ')
-
 
     def set_iirFilter(self, num):
         '''Read/Write. Reads or sets the IIR filter period (time constant).
@@ -72,7 +65,6 @@ class PX409():
         sets the averaged number. Note: the boxcar changes the rate of the readings returned by
         the PC command. This is because the boxcar averages the specified number of readings
         given by nn, and outputs one reading for the group.
-
         '''
         self.serial.write(('AVG '+str(num)+'\r').encode('ascii'))
         time.sleep(0.5)
@@ -94,7 +86,6 @@ class PX409():
         
         return resp_unicode
 
-
     def pickAscii(self):
         '''Sends single ASCII reading (decimal point also sent as ASCII). Data is post filter, and
         scaled to the native engineering units and type of transducer.
@@ -106,7 +97,6 @@ class PX409():
         resp_unicode = resp.decode('ascii')
         
         varList = resp_unicode.split()
-        #print(varList)
         var = float(varList[0]) #Unit: hPa(default) 
         
         return var
@@ -128,8 +118,8 @@ class PX409():
         return var
 
     def pcClock(self, samples_per_channel):
-        #Collect data using computer's clock
-        #Sampling rate: 50 Hz
+        '''Collect data using computer's clock, Sampling rate: 50 Hz
+        '''
         data = np.zeros((samples_per_channel,2))
         print ('Transducer reading starts.\n')
 
@@ -144,7 +134,6 @@ class PX409():
         print ('Real time: '+str(protime)+' s.') 
 
         print ('Transducer reading finishes.\n')
-        #print (data)
         return data
 
     def pickContinuous(self, samples_per_channel):
@@ -161,8 +150,8 @@ class PX409():
         
         self.serial.write(('PC\r').encode('ascii'))
         startime = time.clock()
+        
         i = 0
-        #databank = []
         while i < samples_per_channel:
             dataGet = self.getData()
             if dataGet  == 0:
@@ -170,26 +159,19 @@ class PX409():
             else:
                 data[i,1] = dataGet
                 data[i,0] = time.clock()-startime
-                #databank.append(dataGet)
-                i = i+1
+                i += 1
                 
         print ('Real time: '+str(time.clock()-startime)+' s.')
         self.stops()
-        # Output unit: hPa
         
-        return data
+        return data # Output unit: hPa
             
-
     def stops(self):
-        '''
-
-        '''
         self.serial.write(('PS\r').encode('ascii'))
         print ('Stop continuous stream of readings.')
         
     def getData(self):
         data = self.serial.read(12) #Read more, in general 6 to 10 bytes
-
         dataLength = len(bytes(data))
         
         for i in range(dataLength):
@@ -197,34 +179,27 @@ class PX409():
                 startidx = i+2
                 j = 0
                 bb = []
-                while j<4:
-                    
+                while j < 4:
                     if startidx+j >= dataLength-1:
                         break
-
                     else:
                         bb.append(bytes(data)[startidx+j])
                         if hex(bytes(data)[startidx+j]) == '0xaa':    
                             startidx = startidx+1
                         else:
                             startidx = startidx
-                        j = j+1
-                    
+                        j += 1
                 break
         
         if startidx+j >= dataLength-1:
             var = 0
             
         else:
-            
             bipacket = bytearray(bytes(bb)[:]) 
             var, = struct.unpack('<f', bipacket)
 
-        #print (var)
         return var
                         
-
-'''
 def main():
     with PX409(port) as omega:
         print(repr(omega.stops()))
@@ -236,7 +211,7 @@ def main():
         
 if __name__ == "__main__" :
     main()
-'''
+
 
 
 
